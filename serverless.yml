@@ -38,32 +38,32 @@ package:
 functions:
 
   hello:
-    handler: functions/hello.handler
+    handler: functionsExperimentation/hello.handler
 
   envBar:
-    handler: functions/envBar.handler
+    handler: functionsExperimentation/envBar.handler
     environment:
       BAZ: bosh
 
   envNoBar:
-    handler: functions/envNoBar.handler
+    handler: functionsExperimentation/envNoBar.handler
 
   apiGet:
-    handler: functions/apiGet.handler
+    handler: functionsExperimentation/apiGet.handler
     events:
       - http:
           path: hello
           method: get
 
   apiPost:
-    handler: functions/apiPost.handler
+    handler: functionsExperimentation/apiPost.handler
     events:
       - http:
           path: hello
           method: post
 
   postmarkWebhookAxios:
-    handler: functions/postmarkWebhookAxios.handler
+    handler: functionsExperimentation/postmarkWebhookAxios.handler
     events:
       - http:
           path: webhook_to_axios

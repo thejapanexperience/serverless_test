@@ -1,5 +1,6 @@
 const AWS = require('aws-sdk')
 const axios = require('axios')
+const fetchMessgaes = require('fetchMessages')
 
 exports.handler = async (event) => {
 
@@ -15,24 +16,24 @@ exports.handler = async (event) => {
     VisibilityTimeout: 60 // time in seconds
   };
   
-  const fetchMessages = () => new Promise((resolve, reject) => {
-    sqs.receiveMessage( sqsFetchParams,(err, data) => {
-      if (err) {
-        console.log('SQS', err, err.stack); // an error occurred
-        reject(err)
-      }
-      else {
-        console.log('SQS', data); // successful response
-        if (data.Messages){
-          let message = data.Messages[0]
-          sqsDeleteParams.ReceiptHandle = message.ReceiptHandle
-          resolve(message)
-        } else {
-          resolve()
-        }
-      } 
-    })
-  })
+  // const fetchMessages = () => new Promise((resolve, reject) => {
+  //   sqs.receiveMessage( sqsFetchParams,(err, data) => {
+  //     if (err) {
+  //       console.log('SQS', err, err.stack); // an error occurred
+  //       reject(err)
+  //     }
+  //     else {
+  //       console.log('SQS', data); // successful response
+  //       if (data.Messages){
+  //         let message = data.Messages[0]
+  //         sqsDeleteParams.ReceiptHandle = message.ReceiptHandle
+  //         resolve(message)
+  //       } else {
+  //         resolve()
+  //       }
+  //     } 
+  //   })
+  // })
 
   const sendToEventGateway = (webhookData) => new Promise((resolve, reject) => {
     console.log('webhookData', webhookData)
@@ -73,7 +74,7 @@ exports.handler = async (event) => {
     Message: 'I am a trigger',
     TopicArn: process.env.SNS_ARN
   };
-  
+
   const countPendingMessages = () => new Promise((resolve, reject) => {
     sqs.getQueueAttributes(sqsCountParams, (err, data) => {
       if (err) {
