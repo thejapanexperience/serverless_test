@@ -1,8 +1,8 @@
 {
-  "name": "functions",
+  "name": "sqstoeventgateway",
   "version": "1.0.0",
   "description": "",
-  "main": "apiGet.js",
+  "main": "sqsToEventGateway.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

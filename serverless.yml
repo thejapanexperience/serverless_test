@@ -11,7 +11,7 @@
 #
 # Happy Coding!
 
-service: ServerlessTest
+service: ServerlessTestV2
 
 provider:
   name: aws
@@ -38,51 +38,42 @@ package:
 functions:
 
   hello:
-    handler: functions/hello.handler
+    handler: functions/play/hello.handler
 
   envBar:
-    handler: functions/envBar.handler
+    handler: functions/play/envBar.handler
     environment:
       BAZ: bosh
 
   envNoBar:
-    handler: functions/envNoBar.handler
+    handler: functions/play/envNoBar.handler
 
   apiGet:
-    handler: functions/apiGet.handler
+    handler: functions/play/apiGet.handler
     events:
       - http:
           path: hello
           method: get
 
   apiPost:
-    handler: functions/apiPost.handler
+    handler: functions/play/apiPost.handler
     events:
       - http:
           path: hello
           method: post
 
-  postmarkWebhookAxios:
-    handler: functions/postmarkWebhookAxios.handler
-    events:
-      - http:
-          path: webhook_to_axios
-          method: post
-
   postmarkWebhookSqs:
-    handler: functions/postmarkWebhookSqs.handler
+    handler: functions/postmarkWebhookSqs/postmarkWebhookSqs.handler
     events:
       - http:
           path: webhook_to_sqs
           method: post
 
   sqsToEventGateway:
-    handler: functions/sqsToEventGateway.handler
+    handler: functions/sqsToEventGateway/sqsToEventGateway.handler
     events:
       - sns:
           arn: ${file(./serverless.env.yml):dev.SNS_ARN}
-
-
 
 # you can add CloudFormation resource templates here
 resources:
