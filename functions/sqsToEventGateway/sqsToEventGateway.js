@@ -1,5 +1,6 @@
 const AWS = require('aws-sdk')
 const axios = require('axios')
+const uuid = require('uuid/v4')
 
 exports.handler = async (event) => {
 
@@ -33,6 +34,36 @@ exports.handler = async (event) => {
       } 
     })
   })
+
+  const transformForEventGateway = ( message ) => {
+    let body = JSON.parse(message.Body)
+    let transformedData = {
+      id: uuid(),
+      issuer: 'internal',
+      event_type: 'UpdateEmailStatus',
+      original_data: {},
+      data: {
+        type: body.RecordType,
+        tag: body.Tag,
+        message_id: body.MessageID,
+        processed_at: ''
+      }
+    }
+    delete body.RecordType; delete body.Tag; delete body.MessageID
+    const webhooks = ['DeliveredAt', 'BouncedAt', 'ReceivedAt']
+    for (let i = 0; i < webhooks.length; i++) {
+      let wh = webhooks[i];
+      if(Object.keys(body).includes(wh)) {
+        let key = message[`${wh}`]
+        transformedData.data.processed_at = key
+        delete body[`${key}`]
+        break
+      }
+    }
+    transformedData.data.details = message
+    transformedData.original_data = transformedData.data
+    return transformedData
+  }
 
   const sendToEventGateway = (webhookData) => new Promise((resolve, reject) => {
     console.log('webhookData', webhookData)
@@ -102,8 +133,10 @@ exports.handler = async (event) => {
   let message = await fetchMessages()
   
   if (message) {
+    console.log('Transforming message')
+    let transformed = transformForEventGateway(message)
     console.log('Sending message to Event Gateway...')
-    await sendToEventGateway(message.Body)
+    await sendToEventGateway(transformed)
     console.log('Deleting message on SQS...')
     await updateQueue(message)
   } else { 
