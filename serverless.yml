@@ -1,67 +1,36 @@
-# Welcome to Serverless!
-#
-# This file is the main config file for your service.
-# It's very minimal at this point and uses default values.
-# You can always add more config options for more control.
-# We've included some commented out config examples here.
-# Just uncomment any of them to get that config option.
-#
-# For full config options, check the docs:
-#    docs.serverless.com
-#
-# Happy Coding!
-
-service: ServerlessTestV2
+service: ServerlessTestV4
 
 provider:
   name: aws
+  profile: default
   iamRoleStatements:
     -  Effect: Allow
        Action:
-         - sqs:*
-         - sns:*
-         - lambda:*
+         - sqs:CreateQueue
+         - sqs:SendMessage
+         - sqs:ReceiveMessage
+         - sqs:DeleteMessage
+         - sqs:GetQueueAttributes
+         - sns:Publish
+         - sns:CreateTopic
+         - lambda:Invoke
+         - cloudwatch:PutEvents
        Resource: "*"
   runtime: nodejs8.10
   stage: dev
-  region: eu-west-1
+  region: eu-west-2
   environment:
     FOO: bar
-    SQS_ENDPOINT: ${file(./serverless.env.yml):dev.SQS_ENDPOINT}
+    SQS_URL: ${file(./serverless.env.yml):dev.SQS_URL}
     SNS_ARN: ${file(./serverless.env.yml):dev.SNS_ARN}
     EVENT_ENDPOINT: ${file(./serverless.env.yml):dev.EVENT_ENDPOINT}
 
 package:
   exclude:
     - node_modules/**
+    - functions/play/**
 
 functions:
-
-  hello:
-    handler: functions/play/hello.handler
-
-  envBar:
-    handler: functions/play/envBar.handler
-    environment:
-      BAZ: bosh
-
-  envNoBar:
-    handler: functions/play/envNoBar.handler
-
-  apiGet:
-    handler: functions/play/apiGet.handler
-    events:
-      - http:
-          path: hello
-          method: get
-
-  apiPost:
-    handler: functions/play/apiPost.handler
-    events:
-      - http:
-          path: hello
-          method: post
-
   postmarkWebhookSqs:
     handler: functions/postmarkWebhookSqs/postmarkWebhookSqs.handler
     events:
@@ -72,22 +41,17 @@ functions:
   sqsToEventGateway:
     handler: functions/sqsToEventGateway/sqsToEventGateway.handler
     events:
-      - sns:
-          arn: ${file(./serverless.env.yml):dev.SNS_ARN}
+      - sns: Trigger6
+      - schedule: rate(30 minutes)
 
-# you can add CloudFormation resource templates here
 resources:
   Resources:
-
     PostmarkWebhookQueue:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: PostmarkWebhookQueue
     
-    LambdaTrigger:
+    Trigger6:
       Type: AWS::SNS::Topic
       Properties: 
-        DisplayName: LambdaTrigger
-        # Subscription:
-          # SNS Subscription
-
+        DisplayName: Trigger6

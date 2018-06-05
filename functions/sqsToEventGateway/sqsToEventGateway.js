@@ -7,7 +7,7 @@ exports.handler = async (event) => {
   let sqs = new AWS.SQS(options = {})
   let sns = new AWS.SNS(options = {})
 
-  const queueUrl = process.env.SQS_ENDPOINT
+  const queueUrl = process.env.SQS_URL
   const eventUrl = process.env.EVENT_ENDPOINT
 
   let sqsFetchParams = {
@@ -54,7 +54,7 @@ exports.handler = async (event) => {
     for (let i = 0; i < webhooks.length; i++) {
       let wh = webhooks[i];
       if(Object.keys(body).includes(wh)) {
-        let key = message[`${wh}`]
+        let key = body[`${wh}`]
         transformedData.data.processed_at = key
         delete body[`${key}`]
         break
@@ -66,7 +66,6 @@ exports.handler = async (event) => {
   }
 
   const sendToEventGateway = (webhookData) => new Promise((resolve, reject) => {
-    console.log('webhookData', webhookData)
     axios.post(eventUrl, webhookData)
     .then( response => {
       console.log('SQS', response.data)
@@ -139,13 +138,11 @@ exports.handler = async (event) => {
     await sendToEventGateway(transformed)
     console.log('Deleting message on SQS...')
     await updateQueue(message)
+    console.log('Counting pending messages...')
+    await countPendingMessages()
   } else { 
     console.log('No Messages on SQS') 
   }
-
-  console.log('Counting pending messages...')
-  await countPendingMessages()
-  
   console.log('All done...')
     
   return "Thanks for the message, I've sent it to the event gateway!"

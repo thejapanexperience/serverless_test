@@ -18,7 +18,7 @@ exports.handler = async (event) => {
 
   let sqsParams = {
     MessageBody: event.body,
-    QueueUrl: process.env.SQS_ENDPOINT,
+    QueueUrl: process.env.SQS_URL,
     MessageAttributes: {
       'WebhookData': {
         DataType: 'String',
@@ -39,7 +39,7 @@ exports.handler = async (event) => {
         reject(err)
       }
       else {
-        console.log('Response: ', data); // successful response
+        // console.log('Response: ', data); // successful response
         resolve(data)
       } 
     })
