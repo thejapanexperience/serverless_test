@@ -2,7 +2,7 @@ service: ServerlessTestV4
 
 provider:
   name: aws
-  profile: default
+  profile: personal_aws
   iamRoleStatements:
     -  Effect: Allow
        Action:
@@ -20,7 +20,6 @@ provider:
   stage: dev
   region: eu-west-2
   environment:
-    FOO: bar
     SQS_URL: ${file(./serverless.env.yml):dev.SQS_URL}
     SNS_ARN: ${file(./serverless.env.yml):dev.SNS_ARN}
     EVENT_ENDPOINT: ${file(./serverless.env.yml):dev.EVENT_ENDPOINT}
@@ -41,8 +40,8 @@ functions:
   sqsToEventGateway:
     handler: functions/sqsToEventGateway/sqsToEventGateway.handler
     events:
-      - sns: Trigger6
-      - schedule: rate(30 minutes)
+      - sns: LambdaTrigger
+      - schedule: rate(24 hours)
 
 resources:
   Resources:
@@ -50,8 +49,6 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: PostmarkWebhookQueue
-    
-    Trigger6:
-      Type: AWS::SNS::Topic
-      Properties: 
-        DisplayName: Trigger6
+
+plugins:
+  - serverless-offline
