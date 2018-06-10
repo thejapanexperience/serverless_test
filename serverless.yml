@@ -2,7 +2,7 @@ service: ServerlessTestV4
 
 provider:
   name: aws
-  profile: default
+  profile: personal_aws
   iamRoleStatements:
     -  Effect: Allow
        Action:
@@ -20,38 +20,48 @@ provider:
   stage: dev
   region: eu-west-2
   environment:
-    FOO: bar
-    SQS_URL: ${file(./serverless.env.yml):dev.SQS_URL}
-    SNS_ARN: ${file(./serverless.env.yml):dev.SNS_ARN}
+    SQS_URL: { "Fn::Join" : ["", ["https://sqs.${self:custom.region}.amazonaws.com/", { "Ref" : "AWS::AccountId" }, "/${self:custom.updatesQueue}" ] ]  }
+    PROCESS_UPDATE_SNS_ARN: { "Fn::Join" : ["", ["arn:aws:sns:${self:custom.region}:", { "Ref" : "AWS::AccountId" }, ":${self:custom.processUpdateTrigger}" ] ]  }
+    COUNT_UPDATES_SNS_ARN: { "Fn::Join" : ["", ["arn:aws:sns:${self:custom.region}:", { "Ref" : "AWS::AccountId" }, ":${self:custom.countUpdatesTrigger}" ] ]  }
     EVENT_ENDPOINT: ${file(./serverless.env.yml):dev.EVENT_ENDPOINT}
+
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  region: ${opt:region, self:provider.region}
+  updatesQueue: "${self:service}-updatesQueue-${self:custom.stage}"
+  processUpdateTrigger: "${self:service}-processUpdateTrigger-${self:custom.stage}"
+  countUpdatesTrigger: "${self:service}-countUpdatesTrigger-${self:custom.stage}"
 
 package:
   exclude:
     - node_modules/**
-    - functions/play/**
 
 functions:
-  postmarkWebhookSqs:
-    handler: functions/postmarkWebhookSqs/postmarkWebhookSqs.handler
+  receiveUpdate:
+    handler: functions/receiveUpdate/receiveUpdate.handler
     events:
       - http:
-          path: webhook_to_sqs
+          path: receive_update
           method: post
 
-  sqsToEventGateway:
-    handler: functions/sqsToEventGateway/sqsToEventGateway.handler
+  processUpdate:
+    handler: functions/processUpdate/processUpdate.handler
     events:
-      - sns: Trigger6
-      - schedule: rate(30 minutes)
+      - sns: ${self:custom.processUpdateTrigger}
+      - schedule: rate(24 hours)
+  
+  countUpdates:
+    handler: functions/countUpdates/countUpdates.handler
+    events:
+      - sns: ${self:custom.countUpdatesTrigger}
+      - schedule: rate(24 hours)
 
 resources:
   Resources:
-    PostmarkWebhookQueue:
+    updatesQueue:
       Type: AWS::SQS::Queue
       Properties:
-        QueueName: PostmarkWebhookQueue
-    
-    Trigger6:
-      Type: AWS::SNS::Topic
-      Properties: 
-        DisplayName: Trigger6
+        QueueName: ${self:custom.updatesQueue}
+
+plugins:
+  - serverless-offline

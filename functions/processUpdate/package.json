@@ -1,8 +1,8 @@
 {
-  "name": "sqstoeventgateway",
+  "name": "process_update",
   "version": "1.0.0",
   "description": "",
-  "main": "sqsToEventGateway.js",
+  "main": "processUpdate.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

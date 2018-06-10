@@ -4,11 +4,13 @@
   "description": "",
   "main": "apiGet.js",
   "dependencies": {
-    "aws-sdk": "^2.247.1"
+    "aws-sdk": "^2.247.1",
+    "serverless-offline": "^3.25.4"
   },
   "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "sls offline start --port 4500",
+    "test": "jest"
   },
   "author": "",
   "license": "ISC"
