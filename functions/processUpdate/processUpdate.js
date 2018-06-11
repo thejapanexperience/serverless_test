@@ -1,11 +1,14 @@
 const AWS = require('aws-sdk')
 const axios = require('axios')
 const uuid = require('uuid/v4')
+const moment = require('moment')
 
 const sqs = new AWS.SQS(options = {})
 const sns = new AWS.SNS(options = {})
 
 let invocations = 0
+const instantiationTime = moment()
+let lastInvocationTime = moment()
 
 const sqsFetchParams = {
   QueueUrl: process.env.SQS_URL, /* required */
@@ -19,23 +22,29 @@ const fetchUpdate = () => new Promise((resolve, reject) => {
       reject(err)
     }
     else {
-      if (data.Messages && data.Messages[0].Body){
-        console.log('I got an update!')
-        let message = data.Messages[0]
-        resolve(message)
-      } else {
-        resolve('No messages')
-      }
+      resolve(data)
     } 
   })
-}).catch(err => {
+})
+.then( data => {
+  if (data.Messages && data.Messages[0].Body) {
+    console.log('I got an update!')
+    let message = data.Messages[0]
+    return message
+  } else {
+    return 'No messages'
+  }
+})
+.catch( err => {
   console.error(err)
 })
 
+
 const transformForEventGateway = ( json ) => {
+
   let body = JSON.parse(json)
   let transformedData = {
-    id: uuid(),
+    id: '',
     issuer: 'internal',
     event_type: 'UpdateEmailStatus',
     original_data: {},
@@ -43,31 +52,56 @@ const transformForEventGateway = ( json ) => {
       type: body.RecordType,
       tag: body.Tag,
       message_id: body.MessageID,
-      processed_at: ''
+      processed_at: '',
+      details: {}
     }
+  }
+  let processedAt = ''
+  switch (body.RecordType) { 
+    case 'Delivery':
+      processedAt = body['DeliveredAt']
+      transformedData.data.processed_at = processedAt
+      transformedData.id = `${body['MessageID']}-Delivered-${processedAt}`
+      delete body['DeliveredAt']
+      break
+    case 'Bounce':
+      processedAt = body['BouncedAt']
+      console.log(processedAt)
+      transformedData.data.processed_at = processedAt
+      transformedData.id = `${body['MessageID']}-Bounce-${processedAt}`
+      delete body['BouncedAt']
+      break
+    case 'SpamComplaint':
+      processedAt = body['BouncedAt']
+      transformedData.data.processed_at = processedAt
+      transformedData.id = `${body['MessageID']}-SpamComplaint-${processedAt}`
+      delete body['BouncedAt']
+      break
+    case 'Open':
+      processedAt = body['ReceivedAt']
+      transformedData.data.processed_at = processedAt
+      transformedData.id = `${body['MessageID']}-Open-${processedAt}`
+      delete body['ReceivedAt']
+      break
+    case 'Click':
+      processedAt = body['ReceivedAt']
+      transformedData.data.processed_at = processedAt
+      transformedData.id = `${body['MessageID']}-Click-${processedAt}`
+      delete body['ReceivedAt']
   }
 
   const keysToDelete = ['RecordType', 'Tag', 'MessageID']
   keysToDelete.forEach(key => delete body[key])
-  
-  const ats = ['DeliveredAt', 'BouncedAt', 'ReceivedAt']
-  ats.forEach(at => {
-    if (Object.keys(body).includes(at)) {
-      let key = body[`${at}`]
-      transformedData.data.processed_at = key
-      delete body[`${key}`]
-    }
-  })
 
   transformedData.data.details = body
   transformedData.original_data = {...transformedData.data}
-  console.log(`Update type = ${transformedData.data.type}`)
+  console.log(`Update id = ${transformedData.id}`)
   return transformedData
 }
 
 const sendToEventGateway = (transformedUpdate) => 
 axios.post(process.env.EVENT_ENDPOINT, transformedUpdate)
-.then( response => {
+.then( data => {
   console.log("Done! The Event Gateway has received this update!")
   return 'sent'
 })
@@ -86,12 +120,16 @@ const updateQueue = (receiptHandle) => new Promise((resolve, reject) => {
     if (err) {
       reject(err)
     } else {
-      let response = "Done! The update has been deleted from the queue."
-      console.log(response)
-      resolve(response)
+      resolve(data)
     }
   })
-}).catch(err => {
+})
+.then( data => {
+  let response = "Done! The update has been deleted from the queue."
+  console.log(response)
+  return(response)
+})
+.catch( err => {
   console.error('Unable to delete update from queue at this time... ', err)
 })
 
@@ -104,19 +142,29 @@ const countPendingUpdates = () => new Promise((resolve, reject) => {
     if (err) {
       reject(err)
     } else {
-      let response = "The number of updates is being counted..."
-      console.log(response)
-      resolve(response)
+      resolve(data)
     }
   })
-}).catch(err => {
+})
+.then ( data => {
+  let response = "The number of updates is being counted..."
+  console.log(response)
+  return response
+})
+.catch( err => {
   console.error('Unable to check if there are more updates at this time... ', err)
 })
 
 exports.handler = async () => {
 
   invocations += 1
+  const invocationTime = moment()
+  const upTime = invocationTime - instantiationTime
+  const sinceLastTime = invocationTime - lastInvocationTime
   console.log('Number of invocations of this instance: ', invocations)
+  console.log('Lambda upTime: ', moment.utc(upTime).format("HH:mm:ss.SSS"))
+  console.log('Time since last invocation: ', moment.utc(sinceLastTime).format("HH:mm:ss.SSS"))
+  lastInvocationTime = invocationTime
 
   console.log('Getting an update from the queue...')
   const update = await fetchUpdate()

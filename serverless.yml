@@ -31,6 +31,11 @@ custom:
   updatesQueue: "${self:service}-updatesQueue-${self:custom.stage}"
   processUpdateTrigger: "${self:service}-processUpdateTrigger-${self:custom.stage}"
   countUpdatesTrigger: "${self:service}-countUpdatesTrigger-${self:custom.stage}"
+  jest:
+    # You can pass jest options here
+    # See details here: https://facebook.github.io/jest/docs/configuration.html
+    # For instance, uncomment next line to enable code coverage
+    collectCoverage: true
 
 package:
   exclude:
@@ -65,3 +70,4 @@ resources:
 
 plugins:
   - serverless-offline
+  - serverless-jest-plugin

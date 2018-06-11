@@ -1,9 +1,20 @@
 const AWS = require('aws-sdk')
+const moment = require('moment')
 
 const sqs = new AWS.SQS(options = {})
 const sns = new AWS.SNS(options = {})
 
 let invocations = 0
+const instantiationTime = moment()
+let lastInvocationTime = moment()
+
+const checkAuth = (event) => {
+   if (event.headers.giraffe !== 'hippo') {
+     console.log("Giraffe DOESN'T equal hippo!!!! ALERT ALERT ALERT")
+     return false
+   }
+   return true
+}
 
 const sqsParams = {
   MessageBody: '',
@@ -22,12 +33,16 @@ const putUpdateOnSqs = (event) => new Promise((resolve, reject) => {
     if (err) {
       reject(err)
     } else {
-      let response = "Done! The update is now on the queue."
-      console.log(response)
-      resolve(response)
+      resolve(data)
     }
   })
-}).catch(err => {
+})
+.then( data => {
+  let response = "Done! The update is now on the queue."
+  console.log(response)
+  return data
+})
+.catch( err => {
     console.error('Unable to put update on queue... ', err)
 })
 
@@ -41,12 +56,15 @@ const snsTrigger = () => new Promise((resolve, reject) => {
       reject(err)
     }
     else {
-      let response = "Done! The update is now being processed..."
-      console.log(response)
-      resolve(response)
+      resolve(data)
     }
   })
-}).catch(err => {
+})
+.then( data => {
+  let response = "Done! The update is now being processed..."
+  console.log(response)
+})
+.catch( err => {
   console.error('Unable to trigger SNS at this time... ', err)
 })
 
@@ -57,9 +75,18 @@ let sqsFailure = { statusCode : 503 }
 exports.handler = async (event, context) => {
 
   invocations +=1
+  console.log(invocations)
+  console.log(invocations)
+  const invocationTime = moment()
+  const upTime = invocationTime - instantiationTime
+  const sinceLastTime = invocationTime - lastInvocationTime
   console.log('Number of invocations of this instance: ', invocations)
+  console.log('Lambda upTime: ', moment.utc(upTime).format("HH:mm:ss.SSS"))
+  console.log('Time since last invocation: ', moment.utc(sinceLastTime).format("HH:mm:ss.SSS"))
+  lastInvocationTime = invocationTime
 
-  if (event.headers.giraffe !== 'hippo'){
+  auth = checkAuth(event)
+  if (!auth){
     console.log("Giraffe DOESN'T equal hippo!!!! ALERT ALERT ALERT")
     return noAuthFailure
   }

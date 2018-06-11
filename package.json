@@ -4,10 +4,12 @@
   "description": "",
   "main": "apiGet.js",
   "dependencies": {
-    "aws-sdk": "^2.247.1",
+    "aws-sdk": "^2.247.1"
+  },
+  "devDependencies": {
+    "jest": "^23.1.0",
     "serverless-offline": "^3.25.4"
   },
-  "devDependencies": {},
   "scripts": {
     "dev": "sls offline start --port 4500",
     "test": "jest"

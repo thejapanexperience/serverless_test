@@ -1,9 +1,12 @@
 const AWS = require('aws-sdk')
+const moment = require('moment')
 
 const sqs = new AWS.SQS(options = {})
 const sns = new AWS.SNS(options = {})
 
 let invocations = 0
+const instantiationTime = moment()
+let lastInvocationTime = moment()
 
 const sqsParams = {
   QueueUrl: process.env.SQS_URL,
@@ -14,12 +17,16 @@ const countPendingMessages = () => new Promise((resolve, reject) => {
     if (err) {
       reject(err)
     } else {
-      let count = data.Attributes.ApproximateNumberOfMessages
-      console.log(`There are ${count} message(s) on the queue.`)
-      resolve(count)
+      resolve(data)
     }
   })
-}).catch(err => {
+})
+.then( data => {
+  let count = data.Attributes.ApproximateNumberOfMessages
+  console.log(`There are ${count} message(s) on the queue.`)
+  return count
+})
+.catch( err => {
   console.error('Unable to count messages at this time... ', err)
 })
 
@@ -32,18 +39,27 @@ const processPendingMessages = () => new Promise((resolve, reject) => {
     if (err) {
       reject(err)
     } else {
-      console.log("Done! The next update is being processed...")
-      resolve()
+      resolve(data)
     }
   })
-}).catch(err => {
+})
+.then ( data => {
+  console.log("Done! The next update is being processed...")
+})
+.catch( err => {
   console.error('Unable to process updates at this time... ', err)
 })
 
 exports.handler = async () => {
 
   invocations += 1
+  const invocationTime = moment()
+  const upTime = invocationTime - instantiationTime
+  const sinceLastTime = invocationTime - lastInvocationTime
   console.log('Number of invocations of this instance: ', invocations)
+  console.log('Lambda upTime: ', moment.utc(upTime).format("HH:mm:ss.SSS"))
+  console.log('Time since last invocation: ', moment.utc(sinceLastTime).format("HH:mm:ss.SSS"))
+  lastInvocationTime = invocationTime
   
   console.log('Counting messages now...')
   const count = await countPendingMessages()
